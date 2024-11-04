@@ -1,0 +1,25 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore all image files
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Ignore temporary files
+*.tmp
+*.log
+
+# Ignore macOS metadata
+.DS_Store
+
+# Ignore environment variable files
+.env
+
+# Ignore the folder with downloaded images
+scraped_images/
+
+# Ignore the myenv folder
+myenv/
