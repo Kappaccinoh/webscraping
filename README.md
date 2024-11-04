@@ -14,6 +14,7 @@ Theorised File Checking Process
 1. scrape and parse 5 search engines
 2. run through AIChecker
 3. human manual verification
+4. manual uploading of verified folders to onedrive
 
 current file structure
 scraper.py - driver of the downloading process (done)
