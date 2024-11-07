@@ -29,6 +29,7 @@ MIN_HEIGHT = 100
 
 # Maximum number of images to download per search engine
 MAX_IMAGES = 200
+NO_PROGRESS_TIMEOUT = 10  # Time in seconds to wait if no progress is made
 
 # Function to download and save images
 def download_image(url, save_path):
@@ -63,13 +64,16 @@ def scrape_images(search_engine, query, query_folder):
         print(f"Folder {folder_path} already populated. Skipping {capitalized_engine}...")
         return  # Skip scraping if the folder is not empty
 
+    # Set to keep track of downloaded URLs
+    downloaded_urls = set()
+    
     # Navigate to the search engine
     search_url = SEARCH_ENGINES[search_engine].format(query=query)
     driver.get(search_url)
     time.sleep(2)  # Allow page to load
 
     image_count = 0
-    scroll_count = 0
+    last_download_time = time.time()  # Track time since the last download
     
     while image_count < MAX_IMAGES:
         # Scroll down and allow time for new images to load
@@ -80,18 +84,36 @@ def scrape_images(search_engine, query, query_folder):
         soup = BeautifulSoup(driver.page_source, "html.parser")
         image_tags = soup.find_all("img")
 
+        progress_made = False  # Track if new images are downloaded in this loop
+
         for img_tag in image_tags:
             if image_count >= MAX_IMAGES:
                 print(f"Reached max limit of {MAX_IMAGES} images for {capitalized_engine}")
                 return
             img_url = img_tag.get("src") or img_tag.get("data-src")
             if img_url:
+                # Normalize URL if it doesn't start with "http"
                 img_url_full = img_url if img_url.startswith("http") else "https:" + img_url
-                print(f"Trying to download visible image URL: {img_url_full}")
+                
+                # Check for duplicates
+                if img_url_full in downloaded_urls:
+                    continue  # Skip duplicate images
+
+                # Add the URL to the set to avoid duplicates
+                downloaded_urls.add(img_url_full)
+
+                # Attempt to download the image
                 save_name = f"{capitalized_engine}_{image_count + 1:04d}.jpg"
                 save_path = os.path.join(folder_path, save_name)
                 if download_image(img_url_full, save_path):
                     image_count += 1
+                    progress_made = True  # Update progress if an image is downloaded
+                    last_download_time = time.time()  # Reset the last download time
+
+        # Check if no progress has been made within the timeout period
+        if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
+            print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
+            break
 
 # Main loop to start scraping
 def main():
