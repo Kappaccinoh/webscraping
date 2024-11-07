@@ -29,7 +29,7 @@ MIN_HEIGHT = 100
 
 # Maximum number of images to download per search engine
 MAX_IMAGES = 200
-NO_PROGRESS_TIMEOUT = 10  # Time in seconds to wait if no progress is made
+NO_PROGRESS_TIMEOUT = 30  # Time in seconds to wait if no progress is made
 
 # Function to download and save images
 def download_image(url, save_path):
@@ -117,7 +117,7 @@ def scrape_images(search_engine, query, query_folder):
 
 # Main loop to start scraping
 def main():
-    query = "curry fish"  # Replace with your search term
+    query = "big breakfast, mcdonalds'"  # Replace with your search term
     
     # Create a query folder within the BASE_DIR
     query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))
