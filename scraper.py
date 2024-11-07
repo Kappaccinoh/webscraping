@@ -114,10 +114,12 @@ def scrape_images(search_engine, query, query_folder):
         if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
             print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
             break
+    
+    print("Scraping completed for all 5 search engines")
 
 # Main loop to start scraping
 def main():
-    query = "big breakfast, mcdonalds'"  # Replace with your search term
+    query = "rice, unpolished, raw"  # Replace with your search term
     
     # Create a query folder within the BASE_DIR
     query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))

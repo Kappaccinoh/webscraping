@@ -22,3 +22,7 @@ AIChecker.py - yolov10 to look through each image? if identified human/other non
 
 TODO
 1. AIChecker.py
+
+PROBLEMS/BUGS
+1. Yahoo browser downloading duplicate images
+2. Google search engine buggy, sometimes works sometimes times out even for 30s - fails to retrieve host or empty host, suspect the fix is that the automatic browser is required to be visible on the desktop so the auto clicking and auto scrolling works
