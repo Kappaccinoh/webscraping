@@ -12,9 +12,10 @@ All downloaded images must be still manually checked by a human at the end of th
 
 Theorised File Checking Process
 1. scrape and parse 5 search engines
-2. run through AIChecker
-3. human manual verification
-4. manual uploading of verified folders to onedrive
+2. (REDUNDANT) flatten hierarchy (technically can do in part 1 but its easier to detect for scraping failure)
+3. run through AIChecker
+4. human manual verification
+5. manual uploading of verified folders to onedrive
 
 current file structure
 scraper.py - driver of the downloading process (done)
