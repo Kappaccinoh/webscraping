@@ -114,12 +114,33 @@ def scrape_images(search_engine, query, query_folder):
         if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
             print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
             break
-    
-    print("Scraping completed for all 5 search engines")
+
+    # Post-processing for specific search engines
+    if search_engine == "yahoo":
+        print("Deleting every other image for Yahoo")
+        delete_every_other_image(folder_path)
+    elif search_engine == "bing":
+        print("Deleting the first 8 images for Bing")
+        delete_first_n_images(folder_path, 8)
+
+# Function to delete every other image in a folder (Yahoo-specific)
+def delete_every_other_image(folder_path):
+    images = sorted(os.listdir(folder_path))
+    for i, image in enumerate(images):
+        if i % 2 == 1:  # Delete every second image
+            os.remove(os.path.join(folder_path, image))
+            print(f"Deleted: {image} in {folder_path}")
+
+# Function to delete the first N images in a folder (Bing-specific)
+def delete_first_n_images(folder_path, n):
+    images = sorted(os.listdir(folder_path))
+    for i in range(min(n, len(images))):  # Ensure we don't try to delete more than available images
+        os.remove(os.path.join(folder_path, images[i]))
+        print(f"Deleted first image: {images[i]} in {folder_path}")
 
 # Main loop to start scraping
 def main():
-    query = "rice, unpolished, raw"  # Replace with your search term
+    query = "fish curry"  # Replace with your search term
     
     # Create a query folder within the BASE_DIR
     query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))
