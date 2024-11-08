@@ -53,7 +53,7 @@ def download_image(url, save_path):
 
 # Function to scrape images from each search engine
 def scrape_images(search_engine, query, query_folder):
-    capitalized_engine = search_engine.capitalize()
+    capitalized_engine = "DuckDuckGo" if search_engine == "duckduckgo" else search_engine.capitalize()
     
     # Create a folder for each search engine within the query folder
     folder_path = os.path.join(query_folder, capitalized_engine)
