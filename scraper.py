@@ -140,15 +140,22 @@ def delete_first_n_images(folder_path, n):
 
 # Main loop to start scraping
 def main():
-    query = "minced pork soup, with spinach"  # Replace with your search term
+    queries = ["soup, chicken noodle, instant prepared",
+    "pow, lotus seed paste",
+    "jam, unspecified",
+    "braised egg in soya sauce",
+    "vegetable u-mian",
+    "pumpkin, boiled",
+    "bread, focaccia"]
     
-    # Create a query folder within the BASE_DIR
-    query_folder = os.path.join(BASE_DIR, query)
-    os.makedirs(query_folder, exist_ok=True)
+    for query in queries:
+        # Create a query folder within the BASE_DIR
+        query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))
+        os.makedirs(query_folder, exist_ok=True)
 
-    for engine in SEARCH_ENGINES:
-        print(f"\nScraping images from {engine.capitalize()} for query '{query}'...")
-        scrape_images(engine, query, query_folder)
+        for engine in SEARCH_ENGINES:
+            print(f"\nScraping images from {engine.capitalize()} for query '{query}'...")
+            scrape_images(engine, query, query_folder)
 
 # Run the main function
 if __name__ == "__main__":
