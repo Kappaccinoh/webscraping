@@ -27,9 +27,13 @@ All downloaded images must be still manually checked by a human at the end of th
 7. human manual verification
 8. manual uploading of verified folders to onedrive
 
+Structure of AWS Services
+![AWS Diagram](image.png)
+
 current file structure
 scraper.py - driver of the downloading process (done)
 AIChecker.py - yolov10 to look through each image? if identified human/other non-food lable then discard, else keep
+
 
 TODO
 1. AIChecker.py
