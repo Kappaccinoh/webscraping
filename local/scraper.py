@@ -140,13 +140,7 @@ def delete_first_n_images(folder_path, n):
 
 # Main loop to start scraping
 def main():
-    queries = ["soup, chicken noodle, instant prepared",
-    "pow, lotus seed paste",
-    "jam, unspecified",
-    "braised egg in soya sauce",
-    "vegetable u-mian",
-    "pumpkin, boiled",
-    "bread, focaccia"]
+    queries = ["red bean bun"]
     
     for query in queries:
         # Create a query folder within the BASE_DIR
