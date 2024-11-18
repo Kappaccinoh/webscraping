@@ -187,7 +187,14 @@ def scrape_images(search_engine, query, query_folder):
 
 # Main function
 def main():
-    queries = ["minced pork soup with spinach"]  # Example search query
+    queries = ["soup, chicken noodle, instant prepared",
+        "pow, lotus seed paste",
+        "jam, unspecified",
+        "braised egg in soya sauce",
+        "vegetable u-mian",
+        "pumpkin, boiled",
+        "bread, focaccia"]  # Example search query
+
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query)
         
