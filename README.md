@@ -32,9 +32,6 @@ Structure of AWS Services
 
 FACTORED
 - ALL (random scrolling and increase in frequency)
-- bing
-- duckduckgo 
-
 
 PHOTO REQUIREMENTS
 - 100x100 minimum
@@ -46,7 +43,3 @@ TODO
 
 PROBLEMS/BUGS
 1. Yahoo browser downloading duplicate images
-2. Google search engine buggy, sometimes works sometimes times out even for 30s - fails to retrieve host or empty host, suspect the fix is that the automatic browser is required to be visible on the desktop so the auto clicking and auto scrolling works
-
-SUGGESTIONS
-1. increase downloads from 200 to 300 across the board?
