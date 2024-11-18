@@ -6,15 +6,16 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from PIL import Image
 from io import BytesIO
+import random
 
-# Initialize Chrome WebDriver (ensure chromedriver is in your PATH or specify its location)
+# Set up Chrome WebDriver (ensure chromedriver is in your PATH or specify its location)
 driver = webdriver.Chrome()
 
 # Set base directory for images
 BASE_DIR = "scraped images"
 os.makedirs(BASE_DIR, exist_ok=True)
 
-# Define search engines and their URL formats in alphabetical order
+# Define search engines and their URL formats
 SEARCH_ENGINES = {
     "bing": "https://www.bing.com/images/search?q={query}",
     "duckduckgo": "https://duckduckgo.com/?q={query}&iax=images&ia=images",
@@ -23,22 +24,103 @@ SEARCH_ENGINES = {
     "yandex": "https://yandex.com/images/search?text={query}"
 }
 
-# Filter out images smaller than 100x100 pixels
+# Image filters
 MIN_WIDTH = 100
 MIN_HEIGHT = 100
 
-# Maximum number of images to download per search engine
+# Maximum images to download per engine (specific overrides below)
 MAX_IMAGES = 200
 NO_PROGRESS_TIMEOUT = 20  # Time in seconds to wait if no progress is made
 
-# Function to download and save images
+# Navigation functions for each engine
+def random_scroll():
+    scroll_distance = random.randint(1000, 3000)
+    driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
+    time.sleep(random.uniform(1, 3))
+
+def navigate_bing(query):
+    search_url = f"https://www.bing.com/images/search?q={query}"
+    driver.get(search_url)
+    time.sleep(2)
+    while True:
+        random_scroll()
+        # Check for "See more images" button
+        try:
+            see_more_button = driver.find_element(By.XPATH, "//a[contains(@class, 'btn_seemore')]")
+            if see_more_button.is_displayed():
+                print("Clicking 'See more images' button...")
+                see_more_button.click()
+                time.sleep(random.uniform(1, 3))
+        except:
+            pass
+        yield BeautifulSoup(driver.page_source, "html.parser")
+
+def navigate_duckduckgo(query):
+    search_url = f"https://duckduckgo.com/?q={query}&iax=images&ia=images"
+    driver.get(search_url)
+    time.sleep(2)
+    for _ in range(random.randint(5, 10)):  # Increase random scrolls for DuckDuckGo
+        random_scroll()
+        yield BeautifulSoup(driver.page_source, "html.parser")
+
+def navigate_google(query):
+    search_url = f"https://www.google.com/search?q={query}&tbm=isch"
+    driver.get(search_url)
+    time.sleep(2)
+    while True:
+        random_scroll()
+        yield BeautifulSoup(driver.page_source, "html.parser")
+
+def navigate_yahoo(query):
+    search_url = f"https://images.search.yahoo.com/search/images?p={query}"
+    driver.get(search_url)
+    time.sleep(2)
+    while True:
+        random_scroll()
+        # Check for "Show more images" button
+        try:
+            show_more_button = driver.find_element(By.XPATH, "//button[@name='more-res']")
+            if show_more_button.is_displayed():
+                print("Clicking 'Show more images' button...")
+                show_more_button.click()
+                time.sleep(random.uniform(1, 3))
+        except:
+            pass
+        yield BeautifulSoup(driver.page_source, "html.parser")
+
+def navigate_yandex(query):
+    search_url = f"https://yandex.com/images/search?text={query}"
+    driver.get(search_url)
+    time.sleep(2)
+    while True:
+        random_scroll()
+        # Check for "Show more" button
+        try:
+            show_more_button = driver.find_element(By.XPATH, "//button[contains(@class, 'FetchListButton-Button')]")
+            if show_more_button.is_displayed():
+                print("Clicking 'Show more' button...")
+                show_more_button.click()
+                time.sleep(random.uniform(1, 3))
+        except:
+            pass
+        yield BeautifulSoup(driver.page_source, "html.parser")
+
+# Map navigation functions
+navigation_functions = {
+    "bing": navigate_bing,
+    "duckduckgo": navigate_duckduckgo,
+    "google": navigate_google,
+    "yahoo": navigate_yahoo,
+    "yandex": navigate_yandex
+}
+
+# Download and save images
 def download_image(url, save_path):
     try:
         start_time = time.time()
         response = requests.get(url, timeout=5)
-        response.raise_for_status()  # Raise an error for bad responses
+        response.raise_for_status()
         img = Image.open(BytesIO(response.content))
-        # Check dimensions
         if img.width >= MIN_WIDTH and img.height >= MIN_HEIGHT:
             img.save(save_path)
             elapsed_time = time.time() - start_time
@@ -51,109 +133,73 @@ def download_image(url, save_path):
         print(f"Failed to download image from {url}: {e}")
         return False
 
-# Function to scrape images from each search engine
+# Main scraping function
 def scrape_images(search_engine, query, query_folder):
     capitalized_engine = "DuckDuckGo" if search_engine == "duckduckgo" else search_engine.capitalize()
     
-    # Create a folder for each search engine within the query folder
-    folder_path = os.path.join(query_folder, capitalized_engine)
+    # Replace underscores with spaces in the folder name
+    folder_name = capitalized_engine.replace("_", " ")
+    folder_path = os.path.join(query_folder, folder_name)
     os.makedirs(folder_path, exist_ok=True)
 
-    # Check if the folder is empty
     if os.path.exists(folder_path) and os.listdir(folder_path):
         print(f"Folder {folder_path} already populated. Skipping {capitalized_engine}...")
-        return  # Skip scraping if the folder is not empty
+        return
 
-    # Set to keep track of downloaded URLs
     downloaded_urls = set()
-    
-    # Navigate to the search engine
-    search_url = SEARCH_ENGINES[search_engine].format(query=query)
-    driver.get(search_url)
-    time.sleep(2)  # Allow page to load
+    max_images = 400 if search_engine == "yahoo" else MAX_IMAGES
+    navigate_function = navigation_functions[search_engine]
+    navigation_generator = navigate_function(query)
 
     image_count = 0
-    last_download_time = time.time()  # Track time since the last download
-    
-    while image_count < MAX_IMAGES:
-        # Scroll down and allow time for new images to load
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+    last_download_time = time.time()
 
-        # Parse HTML to find image URLs
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+    while image_count < max_images:
+        try:
+            soup = next(navigation_generator)
+        except StopIteration:
+            print(f"No more pages to scrape for {capitalized_engine}.")
+            break
+
         image_tags = soup.find_all("img")
-
-        progress_made = False  # Track if new images are downloaded in this loop
+        progress_made = False
 
         for img_tag in image_tags:
-            if image_count >= MAX_IMAGES:
-                print(f"Reached max limit of {MAX_IMAGES} images for {capitalized_engine}")
+            if image_count >= max_images:
+                print(f"Reached max limit of {max_images} images for {capitalized_engine}")
                 return
             img_url = img_tag.get("src") or img_tag.get("data-src")
             if img_url:
-                # Normalize URL if it doesn't start with "http"
                 img_url_full = img_url if img_url.startswith("http") else "https:" + img_url
-                
-                # Check for duplicates
                 if img_url_full in downloaded_urls:
-                    continue  # Skip duplicate images
-
-                # Add the URL to the set to avoid duplicates
+                    continue
                 downloaded_urls.add(img_url_full)
-
-                # Attempt to download the image
                 save_name = f"{capitalized_engine}_{image_count + 1:04d}.jpg"
                 save_path = os.path.join(folder_path, save_name)
                 if download_image(img_url_full, save_path):
                     image_count += 1
-                    progress_made = True  # Update progress if an image is downloaded
-                    last_download_time = time.time()  # Reset the last download time
+                    progress_made = True
+                    last_download_time = time.time()
 
-        # Check if no progress has been made within the timeout period
         if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
             print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
             break
 
-    # Post-processing for specific search engines
-    if search_engine == "yahoo":
-        print("Deleting every other image for Yahoo")
-        delete_every_other_image(folder_path)
-    elif search_engine == "bing":
-        print("Deleting the first 8 images for Bing")
-        delete_first_n_images(folder_path, 8)
-
-# Function to delete every other image in a folder (Yahoo-specific)
-def delete_every_other_image(folder_path):
-    images = sorted(os.listdir(folder_path))
-    for i, image in enumerate(images):
-        if i % 2 == 1:  # Delete every second image
-            os.remove(os.path.join(folder_path, image))
-            print(f"Deleted: {image} in {folder_path}")
-
-# Function to delete the first N images in a folder (Bing-specific)
-def delete_first_n_images(folder_path, n):
-    images = sorted(os.listdir(folder_path))
-    for i in range(min(n, len(images))):  # Ensure we don't try to delete more than available images
-        os.remove(os.path.join(folder_path, images[i]))
-        print(f"Deleted first image: {images[i]} in {folder_path}")
-
-# Main loop to start scraping
+# Main function
 def main():
-    queries = ["chicken burrito"]
-    
+    queries = ["minced pork soup with spinach"]  # Example search query
     for query in queries:
-        # Create a query folder within the BASE_DIR
         query_folder = os.path.join(BASE_DIR, query)
+        
+        # Replace spaces with underscores in folder name for query
+        query_folder = query_folder.replace(" ", " ")
+
         os.makedirs(query_folder, exist_ok=True)
 
         for engine in SEARCH_ENGINES:
             print(f"\nScraping images from {engine.capitalize()} for query '{query}'...")
             scrape_images(engine, query, query_folder)
 
-# Run the main function
 if __name__ == "__main__":
     main()
-
-# Close the WebDriver after scraping is done
-driver.quit()
+    driver.quit()

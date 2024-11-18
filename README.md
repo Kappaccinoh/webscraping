@@ -30,9 +30,11 @@ All downloaded images must be still manually checked by a human at the end of th
 Structure of AWS Services
 ![AWS Diagram](image.png)
 
-current file structure
-scraper.py - driver of the downloading process (done)
-AIChecker.py - yolov10 to look through each image? if identified human/other non-food lable then discard, else keep
+FACTORED
+- ALL (random scrolling and increase in frequency)
+- bing
+- duckduckgo 
+
 
 PHOTO REQUIREMENTS
 - 100x100 minimum
