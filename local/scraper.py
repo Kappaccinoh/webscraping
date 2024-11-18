@@ -11,7 +11,7 @@ from io import BytesIO
 driver = webdriver.Chrome()
 
 # Set base directory for images
-BASE_DIR = "scraped_images"
+BASE_DIR = "scraped images"
 os.makedirs(BASE_DIR, exist_ok=True)
 
 # Define search engines and their URL formats in alphabetical order
@@ -140,11 +140,11 @@ def delete_first_n_images(folder_path, n):
 
 # Main loop to start scraping
 def main():
-    queries = ["red bean bun"]
+    queries = ["chicken burrito"]
     
     for query in queries:
         # Create a query folder within the BASE_DIR
-        query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))
+        query_folder = os.path.join(BASE_DIR, query)
         os.makedirs(query_folder, exist_ok=True)
 
         for engine in SEARCH_ENGINES:

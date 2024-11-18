@@ -34,6 +34,10 @@ current file structure
 scraper.py - driver of the downloading process (done)
 AIChecker.py - yolov10 to look through each image? if identified human/other non-food lable then discard, else keep
 
+PHOTO REQUIREMENTS
+- 100x100 minimum
+- no collage
+- no people
 
 TODO
 1. AIChecker.py
