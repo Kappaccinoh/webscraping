@@ -184,16 +184,40 @@ def scrape_images(search_engine, query, query_folder):
         if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
             print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
             break
+    
+    # Post-process for Yahoo: Delete every other image
+    if search_engine == "yahoo":
+        print(f"Post-processing: Deleting every other image in {folder_path}")
+        images = sorted(os.listdir(folder_path))
+        for i, image in enumerate(images):
+            if i % 2 != 0:  # Delete every other image (odd index)
+                os.remove(os.path.join(folder_path, image))
+        print("Post-processing complete.")
+    
+    # Post-process for Bing: Delete the first 8 images
+    if search_engine == "bing":
+        print(f"Post-processing: Deleting the first 8 images in {folder_path}")
+        images = sorted(os.listdir(folder_path))
+        for image in images[:8]:  # Select the first 8 images
+            os.remove(os.path.join(folder_path, image))
+        print("Post-processing for Bing complete.")
+
 
 # Main function
 def main():
-    queries = ["soup, chicken noodle, instant prepared",
-        "pow, lotus seed paste",
-        "jam, unspecified",
-        "braised egg in soya sauce",
-        "vegetable u-mian",
-        "pumpkin, boiled",
-        "bread, focaccia"]  # Example search query
+    queries = ["cranberry cheese bun",
+    "cauliflower masala",
+    "sambal sweet potato leaves",
+    "plain aglio aglio",
+    "japanese shoyu ramen",
+    "braised pork ribs, with black mushroom and taucheo"
+    "soup, chicken noodle, instant prepared",
+    "pow, lotus seed paste",
+    "jam, unspecified",
+    "braised egg in soya sauce",
+    "vegetable u-mian",
+    "pumpkin, boiled",
+    "bread, focaccia"]
 
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query)
