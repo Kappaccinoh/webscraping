@@ -133,6 +133,21 @@ def download_image(url, save_path):
         print(f"Failed to download image from {url}: {e}")
         return False
 
+# Function to delete every other image in a folder (Yahoo-specific)
+def delete_every_other_image(folder_path):
+    images = sorted(os.listdir(folder_path))
+    for i, image in enumerate(images):
+        if i % 2 == 1:  # Delete every second image
+            os.remove(os.path.join(folder_path, image))
+            print(f"Deleted: {image} in {folder_path}")
+
+# Function to delete the first N images in a folder (Bing-specific)
+def delete_first_n_images(folder_path, n):
+    images = sorted(os.listdir(folder_path))
+    for i in range(min(n, len(images))):  # Ensure we don't try to delete more than available images
+        os.remove(os.path.join(folder_path, images[i]))
+        print(f"Deleted first image: {images[i]} in {folder_path}")
+
 # Main scraping function
 def scrape_images(search_engine, query, query_folder):
     capitalized_engine = "DuckDuckGo" if search_engine == "duckduckgo" else search_engine.capitalize()
@@ -167,7 +182,7 @@ def scrape_images(search_engine, query, query_folder):
         for img_tag in image_tags:
             if image_count >= max_images:
                 print(f"Reached max limit of {max_images} images for {capitalized_engine}")
-                return
+                break
             img_url = img_tag.get("src") or img_tag.get("data-src")
             if img_url:
                 img_url_full = img_url if img_url.startswith("http") else "https:" + img_url
@@ -188,36 +203,40 @@ def scrape_images(search_engine, query, query_folder):
     # Post-process for Yahoo: Delete every other image
     if search_engine == "yahoo":
         print(f"Post-processing: Deleting every other image in {folder_path}")
-        images = sorted(os.listdir(folder_path))
-        for i, image in enumerate(images):
-            if i % 2 != 0:  # Delete every other image (odd index)
-                os.remove(os.path.join(folder_path, image))
-        print("Post-processing complete.")
+        delete_every_other_image(folder_path)
+        print("\nPost-processing for Yahoo completed")
     
     # Post-process for Bing: Delete the first 8 images
     if search_engine == "bing":
         print(f"Post-processing: Deleting the first 8 images in {folder_path}")
-        images = sorted(os.listdir(folder_path))
-        for image in images[:8]:  # Select the first 8 images
-            os.remove(os.path.join(folder_path, image))
-        print("Post-processing for Bing complete.")
+        delete_first_n_images(folder_path, 8)
+        print("\nPost-processing for Bing complete.")
+
+    return
 
 
 # Main function
 def main():
-    queries = ["cranberry cheese bun",
+    queries = queries = [
+    "potato cutlet, deep fried",
+    "dim sum, turnip cake, steamed",
+    "chicken burrito",
+    "bun, custard",
+    "achar",
     "cauliflower masala",
     "sambal sweet potato leaves",
     "plain aglio aglio",
     "japanese shoyu ramen",
-    "braised pork ribs, with black mushroom and taucheo"
+    "braised pork ribs, with black mushroom and taucheo",
     "soup, chicken noodle, instant prepared",
     "pow, lotus seed paste",
     "jam, unspecified",
     "braised egg in soya sauce",
     "vegetable u-mian",
     "pumpkin, boiled",
-    "bread, focaccia"]
+    "bread, focaccia"
+]
+
 
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query)
