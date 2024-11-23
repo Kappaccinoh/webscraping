@@ -218,25 +218,8 @@ def scrape_images(search_engine, query, query_folder):
 # Main function
 def main():
     queries = queries = [
-    "potato cutlet, deep fried",
-    "dim sum, turnip cake, steamed",
-    "chicken burrito",
-    "bun, custard",
-    "achar",
-    "cauliflower masala",
-    "sambal sweet potato leaves",
-    "plain aglio aglio",
-    "japanese shoyu ramen",
-    "braised pork ribs, with black mushroom and taucheo",
-    "soup, chicken noodle, instant prepared",
-    "pow, lotus seed paste",
-    "jam, unspecified",
-    "braised egg in soya sauce",
-    "vegetable u-mian",
-    "pumpkin, boiled",
-    "bread, focaccia"
+    "spaghetti, wholemeal, boiled"
 ]
-
 
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query)

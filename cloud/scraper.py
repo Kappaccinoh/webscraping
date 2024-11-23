@@ -30,7 +30,8 @@ SEARCH_ENGINES = {
 # Image filters
 MIN_WIDTH = 100
 MIN_HEIGHT = 100
-MAX_IMAGES = 200  # Maximum images to download per engine
+
+# Maximum images to download per engine (specific overrides below)
 NO_PROGRESS_TIMEOUT = 20  # Time in seconds to wait if no progress is made
 
 # Configure Chrome WebDriver
@@ -43,21 +44,23 @@ chrome_options.add_argument("--window-size=1920,1080")  # Set a default screen s
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-# Random scroll simulation for dynamic content loading
+# Navigation functions for each engine
 def random_scroll():
     scroll_distance = random.randint(1000, 3000)
     driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
     time.sleep(random.uniform(1, 3))
 
-# Navigation functions for each search engine
 def navigate_bing(query):
-    driver.get(f"https://www.bing.com/images/search?q={query}")
+    search_url = f"https://www.bing.com/images/search?q={query}"
+    driver.get(search_url)
     time.sleep(2)
     while True:
         random_scroll()
+        # Check for "See more images" button
         try:
             see_more_button = driver.find_element(By.XPATH, "//a[contains(@class, 'btn_seemore')]")
             if see_more_button.is_displayed():
+                print("Clicking 'See more images' button...")
                 see_more_button.click()
                 time.sleep(random.uniform(1, 3))
         except:
@@ -65,27 +68,32 @@ def navigate_bing(query):
         yield BeautifulSoup(driver.page_source, "html.parser")
 
 def navigate_duckduckgo(query):
-    driver.get(f"https://duckduckgo.com/?q={query}&iax=images&ia=images")
+    search_url = f"https://duckduckgo.com/?q={query}&iax=images&ia=images"
+    driver.get(search_url)
     time.sleep(2)
-    for _ in range(random.randint(5, 10)):
+    for _ in range(random.randint(5, 10)):  # Increase random scrolls for DuckDuckGo
         random_scroll()
         yield BeautifulSoup(driver.page_source, "html.parser")
 
 def navigate_google(query):
-    driver.get(f"https://www.google.com/search?q={query}&tbm=isch")
+    search_url = f"https://www.google.com/search?q={query}&tbm=isch"
+    driver.get(search_url)
     time.sleep(2)
     while True:
         random_scroll()
         yield BeautifulSoup(driver.page_source, "html.parser")
 
 def navigate_yahoo(query):
-    driver.get(f"https://images.search.yahoo.com/search/images?p={query}")
+    search_url = f"https://images.search.yahoo.com/search/images?p={query}"
+    driver.get(search_url)
     time.sleep(2)
     while True:
         random_scroll()
+        # Check for "Show more images" button
         try:
             show_more_button = driver.find_element(By.XPATH, "//button[@name='more-res']")
             if show_more_button.is_displayed():
+                print("Clicking 'Show more images' button...")
                 show_more_button.click()
                 time.sleep(random.uniform(1, 3))
         except:
@@ -93,13 +101,16 @@ def navigate_yahoo(query):
         yield BeautifulSoup(driver.page_source, "html.parser")
 
 def navigate_yandex(query):
-    driver.get(f"https://yandex.com/images/search?text={query}")
+    search_url = f"https://yandex.com/images/search?text={query}"
+    driver.get(search_url)
     time.sleep(2)
     while True:
         random_scroll()
+        # Check for "Show more" button
         try:
             show_more_button = driver.find_element(By.XPATH, "//button[contains(@class, 'FetchListButton-Button')]")
             if show_more_button.is_displayed():
+                print("Clicking 'Show more' button...")
                 show_more_button.click()
                 time.sleep(random.uniform(1, 3))
         except:
@@ -118,15 +129,14 @@ navigation_functions = {
 # Download and save images
 def download_image(url, save_path):
     try:
-        start_time = time.time()  # Start timer for each image download
+        start_time = time.time()
         response = requests.get(url, timeout=5)
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
-        
         if img.width >= MIN_WIDTH and img.height >= MIN_HEIGHT:
             img.save(save_path)
-            download_time = time.time() - start_time  # Calculate time taken to download the image
-            print(f"Saved image: {save_path} in {download_time:.2f} seconds")
+            elapsed_time = time.time() - start_time
+            print(f"Saved image: {save_path} in {elapsed_time:.2f}s")
             return True
         else:
             print(f"Skipped small image: {url}")
@@ -135,29 +145,47 @@ def download_image(url, save_path):
         print(f"Failed to download image from {url}: {e}")
         return False
 
-# Scraping function
+# Function to delete every other image in a folder (Yahoo-specific)
+def delete_every_other_image(folder_path):
+    images = sorted(os.listdir(folder_path))
+    for i, image in enumerate(images):
+        if i % 2 == 1:  # Delete every second image
+            os.remove(os.path.join(folder_path, image))
+            print(f"Deleted: {image} in {folder_path}")
+
+# Function to delete the first N images in a folder (Bing-specific)
+def delete_first_n_images(folder_path, n):
+    images = sorted(os.listdir(folder_path))
+    for i in range(min(n, len(images))):  # Ensure we don't try to delete more than available images
+        os.remove(os.path.join(folder_path, images[i]))
+        print(f"Deleted first image: {images[i]} in {folder_path}")
+
+# Main scraping function
 def scrape_images(search_engine, query, query_folder):
-    folder_path = os.path.join(query_folder, search_engine.capitalize())
+    capitalized_engine = "DuckDuckGo" if search_engine == "duckduckgo" else search_engine.capitalize()
+    
+    # Replace underscores with spaces in the folder name
+    folder_name = capitalized_engine.replace("_", " ")
+    folder_path = os.path.join(query_folder, folder_name)
     os.makedirs(folder_path, exist_ok=True)
 
-    if os.listdir(folder_path):  # Skip if folder already populated
-        print(f"Folder {folder_path} already exists. Skipping {search_engine}...")
+    if os.path.exists(folder_path) and os.listdir(folder_path):
+        print(f"Folder {folder_path} already populated. Skipping {capitalized_engine}...")
         return
 
     downloaded_urls = set()
-    max_images = MAX_IMAGES
+    max_images = 400 if search_engine == "yahoo" else MAX_IMAGES
     navigate_function = navigation_functions[search_engine]
     navigation_generator = navigate_function(query)
 
     image_count = 0
     last_download_time = time.time()
-    start_scrape_time = time.time()  # Track the total time to scrape images
 
     while image_count < max_images:
         try:
             soup = next(navigation_generator)
         except StopIteration:
-            print(f"No more pages to scrape for {search_engine}.")
+            print(f"No more pages to scrape for {capitalized_engine}.")
             break
 
         image_tags = soup.find_all("img")
@@ -165,7 +193,7 @@ def scrape_images(search_engine, query, query_folder):
 
         for img_tag in image_tags:
             if image_count >= max_images:
-                print(f"Reached max limit of {max_images} images for {search_engine}")
+                print(f"Reached max limit of {max_images} images for {capitalized_engine}")
                 break
             img_url = img_tag.get("src") or img_tag.get("data-src")
             if img_url:
@@ -173,7 +201,7 @@ def scrape_images(search_engine, query, query_folder):
                 if img_url_full in downloaded_urls:
                     continue
                 downloaded_urls.add(img_url_full)
-                save_name = f"{search_engine.capitalize()}_{image_count + 1:04d}.jpg"
+                save_name = f"{capitalized_engine}_{image_count + 1:04d}.jpg"
                 save_path = os.path.join(folder_path, save_name)
                 if download_image(img_url_full, save_path):
                     image_count += 1
@@ -183,9 +211,20 @@ def scrape_images(search_engine, query, query_folder):
         if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
             print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
             break
+    
+    # Post-process for Yahoo: Delete every other image
+    if search_engine == "yahoo":
+        print(f"Post-processing: Deleting every other image in {folder_path}")
+        delete_every_other_image(folder_path)
+        print("\nPost-processing for Yahoo completed")
+    
+    # Post-process for Bing: Delete the first 8 images
+    if search_engine == "bing":
+        print(f"Post-processing: Deleting the first 8 images in {folder_path}")
+        delete_first_n_images(folder_path, 8)
+        print("\nPost-processing for Bing complete.")
 
-    total_scrape_time = time.time() - start_scrape_time  # Total time for the entire scraping process
-    print(f"Total time taken to scrape images from {search_engine.capitalize()}: {total_scrape_time:.2f} seconds")
+    return
 
 # Add this function to zip the folder
 def zip_folder(folder_path, zip_name):
@@ -224,7 +263,41 @@ def send_sns_notification(message, subject):
 
 # Main function with added zipping and uploading steps
 def main():
-    queries = ["soup chicken noodle"]  # Example search query
+    queries = [
+        "fish ball, deep fried",
+        "thai basil beef with rice",
+        "stir fried chicken, with beansprouts",
+        "stir fried chicken with button mushroom",
+        "seeds, melon seed, flesh only",
+        "sausage, pork, raw",
+        "mos rice burger with chicken",
+        "minced pork, with cucumber, stir fried",
+        "kueh lopes pulut",
+        "honey",
+        "cokodok pisang",
+        "cheese, cream",
+        "barbecued spring chicken",
+        "soya bean drink",
+        "sausage, chicken, chilli",
+        "mui fan",
+        "mini boat noodles, beef",
+        "mee curry",
+        "kheema",
+        "braised pig trotter with mushroom",
+        "stir fried tofu with minced pork",
+        "stir fried bean sprout with dried prawn",
+        "lor mee (new)",
+        "ku chai kueh (chives dumpling)",
+        "gravy, assam pedas",
+        "eggplant, grilled, with onion and chilli, pureed",
+        "dry chicken feet noodles",
+        "claypot noodles, with mixed vegetables",
+        "beef bolognese",
+        "stir fried char siew noodles"
+    ]
+
+    completed_count = 0
+
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query.replace(" ", "_"))
         os.makedirs(query_folder, exist_ok=True)
@@ -238,19 +311,27 @@ def main():
         zip_path = zip_folder(query_folder, zip_name)
 
         # Now upload the zip to S3
-        bucket_name = 'REDACTED' # Define the bucket name
+        bucket_name = 'REDACTED'
         s3_key = f"downloaded_raw/{zip_name}.zip"  # Define the path in the bucket
         upload_to_s3(zip_path, bucket_name, s3_key)
-
-        # Send SNS notification about the upload
-        sns_message = f"The images for '{query}' have been successfully scraped and uploaded to S3."
-        sns_subject = f"Image Scraping for '{query}' Completed"
-        send_sns_notification(sns_message, sns_subject)
 
         # Optionally, clean up the local zip file after upload
         if os.path.exists(zip_path):
             os.remove(zip_path)
             print(f"Deleted local zip file {zip_path}")
+    
+        completed_count += 1
+
+        # Send an SNS notification for every 5 completed folders
+        if completed_count % 5 == 0:
+            sns_message = f"{completed_count} folders have been successfully scraped, zipped, and uploaded to S3."
+            sns_subject = f"Progress Update: {completed_count} Folders Completed"
+            send_sns_notification(sns_message, sns_subject)
+
+    # Final notification after all queries are processed
+    sns_message = f"The images for all {len(queries)} queries have been successfully scraped and uploaded to S3."
+    sns_subject = f"Image Scraping for All {len(queries)} Queries Completed"
+    send_sns_notification(sns_message, sns_subject)
 
 if __name__ == "__main__":
     try:
