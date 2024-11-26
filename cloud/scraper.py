@@ -32,6 +32,7 @@ MIN_WIDTH = 100
 MIN_HEIGHT = 100
 
 # Maximum images to download per engine (specific overrides below)
+MAX_IMAGES = 200
 NO_PROGRESS_TIMEOUT = 20  # Time in seconds to wait if no progress is made
 
 # Configure Chrome WebDriver
@@ -261,39 +262,94 @@ def send_sns_notification(message, subject):
         print(f"Error sending SNS notification: {e}")
         raise
 
-# Main function with added zipping and uploading steps
+# Add this function to count the number of images in a folder
+def count_images_in_folder(folder_path):
+    if not os.path.exists(folder_path):
+        return 0
+    return len([f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png", ".jpeg"))])
+
+# Define the scrape_images function to continue if images are insufficient
+def scrape_images(search_engine, query, query_folder):
+    capitalized_engine = "DuckDuckGo" if search_engine == "duckduckgo" else search_engine.capitalize()
+    
+    # Replace underscores with spaces in the folder name
+    folder_name = capitalized_engine.replace("_", " ")
+    folder_path = os.path.join(query_folder, folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+
+    downloaded_urls = set()
+    navigate_function = navigation_functions[search_engine]
+    navigation_generator = navigate_function(query)
+    
+    max_images = 400 if search_engine == "yahoo" else MAX_IMAGES
+    image_count = count_images_in_folder(folder_path)
+    last_download_time = time.time()
+
+    if image_count >= max_images:
+        print(f"{capitalized_engine} folder already has {image_count} images. Skipping...")
+        return
+
+    print(f"{capitalized_engine} folder has {image_count}/{max_images} images. Continuing scraping...")
+
+    while image_count < max_images:
+        try:
+            soup = next(navigation_generator)
+        except StopIteration:
+            print(f"No more pages to scrape for {capitalized_engine}.")
+            break
+        except Exception as e:
+            print(f"Error navigating {capitalized_engine}: {e}. Skipping...")
+            break
+
+        image_tags = soup.find_all("img")
+        progress_made = False
+
+        for img_tag in image_tags:
+            if image_count >= max_images:
+                print(f"Reached max limit of {max_images} images for {capitalized_engine}")
+                break
+            img_url = img_tag.get("src") or img_tag.get("data-src")
+            if img_url:
+                img_url_full = img_url if img_url.startswith("http") else "https:" + img_url
+                if img_url_full in downloaded_urls:
+                    continue
+                downloaded_urls.add(img_url_full)
+                save_name = f"{capitalized_engine}_{image_count + 1:04d}.jpg"
+                save_path = os.path.join(folder_path, save_name)
+                try:
+                    if download_image(img_url_full, save_path):
+                        image_count += 1
+                        progress_made = True
+                        last_download_time = time.time()
+                except requests.exceptions.RequestException as e:
+                    print(f"Failed to download image from {img_url_full}: {e}. Skipping...")
+                    continue
+
+        if not progress_made and (time.time() - last_download_time) > NO_PROGRESS_TIMEOUT:
+            print(f"No progress for {NO_PROGRESS_TIMEOUT} seconds. Moving to next search engine.")
+            break
+
+    return
+
+# Modify main to include error handling and retries
 def main():
-    queries = [
-        "fish ball, deep fried",
-        "thai basil beef with rice",
-        "stir fried chicken, with beansprouts",
-        "stir fried chicken with button mushroom",
-        "seeds, melon seed, flesh only",
-        "sausage, pork, raw",
-        "mos rice burger with chicken",
-        "minced pork, with cucumber, stir fried",
-        "kueh lopes pulut",
-        "honey",
-        "cokodok pisang",
-        "cheese, cream",
-        "barbecued spring chicken",
-        "soya bean drink",
-        "sausage, chicken, chilli",
-        "mui fan",
-        "mini boat noodles, beef",
-        "mee curry",
-        "kheema",
-        "braised pig trotter with mushroom",
-        "stir fried tofu with minced pork",
-        "stir fried bean sprout with dried prawn",
-        "lor mee (new)",
-        "ku chai kueh (chives dumpling)",
-        "gravy, assam pedas",
-        "eggplant, grilled, with onion and chilli, pureed",
-        "dry chicken feet noodles",
-        "claypot noodles, with mixed vegetables",
-        "beef bolognese",
-        "stir fried char siew noodles"
+    queries = ["potato cutlet, deep fried",
+        "dim sum, turnip cake, steamed",
+        "chicken burrito",
+        "bun, custard",
+        "achar",
+        "cauliflower masala",
+        "sambal sweet potato leaves",
+        "plain aglio aglio",
+        "japanese shoyu ramen",
+        "braised pork ribs, with black mushroom and taucheo",
+        "soup, chicken noodle, instant prepared",
+        "pow, lotus seed paste",
+        "jam, unspecified",
+        "braised egg in soya sauce",
+        "vegetable u-mian",
+        "pumpkin, boiled",
+        "bread, focaccia"
     ]
 
     completed_count = 0
@@ -303,8 +359,11 @@ def main():
         os.makedirs(query_folder, exist_ok=True)
 
         for engine in SEARCH_ENGINES:
-            print(f"\nScraping images from {engine.capitalize()} for query '{query}'...")
-            scrape_images(engine, query, query_folder)
+            try:
+                print(f"\nScraping images from {engine.capitalize()} for query '{query}'...")
+                scrape_images(engine, query, query_folder)
+            except Exception as e:
+                print(f"Error with {engine.capitalize()} for query '{query}': {e}. Skipping engine...")
 
         # After scraping, zip the folder
         zip_name = f"{query.replace(' ', '_')}"
@@ -312,14 +371,17 @@ def main():
 
         # Now upload the zip to S3
         bucket_name = 'REDACTED'
-        s3_key = f"downloaded_raw/{zip_name}.zip"  # Define the path in the bucket
-        upload_to_s3(zip_path, bucket_name, s3_key)
+        s3_key = f"downloaded_raw/{zip_name}.zip"
+        try:
+            upload_to_s3(zip_path, bucket_name, s3_key)
+        except Exception as e:
+            print(f"Error uploading {zip_path} to S3: {e}. Skipping upload...")
 
-        # Optionally, clean up the local zip file after upload
+        # Clean up the local zip file after upload
         if os.path.exists(zip_path):
             os.remove(zip_path)
             print(f"Deleted local zip file {zip_path}")
-    
+        
         completed_count += 1
 
         # Send an SNS notification for every 5 completed folders

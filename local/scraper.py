@@ -217,9 +217,32 @@ def scrape_images(search_engine, query, query_folder):
 
 # Main function
 def main():
-    queries = queries = [
-    "spaghetti, wholemeal, boiled"
-]
+    queries = [
+        "mos rice burger with chicken",
+        "minced pork, with cucumber, stir fried",
+        "kueh lopes pulut",
+        "honey",
+        "cokodok pisang",
+        "cheese, cream",
+        "barbecued spring chicken",
+        "soya bean drink",
+        "sausage, chicken, chilli",
+        "mui fan",
+        "mini boat noodles, beef",
+        "mee curry",
+        "kheema",
+        "braised pig trotter with mushroom",
+        "stir fried tofu with minced pork",
+        "stir fried bean sprout with dried prawn",
+        "lor mee (new)",
+        "ku chai kueh (chives dumpling)",
+        "gravy, assam pedas",
+        "eggplant, grilled, with onion and chilli, pureed",
+        "dry chicken feet noodles",
+        "claypot noodles, with mixed vegetables",
+        "beef bolognese",
+        "stir fried char siew noodles"
+    ]
 
     for query in queries:
         query_folder = os.path.join(BASE_DIR, query)
