@@ -9,5 +9,5 @@ def count_images(directory):
 
     return total_images
 
-directory = "done"  # Replace with the path to your "done" folder
+directory = "scraped images"  # Replace with the path to your "done" folder
 print(f"Total number of images: {count_images(directory)}")
