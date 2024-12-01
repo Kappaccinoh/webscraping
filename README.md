@@ -24,8 +24,9 @@ All downloaded images must be still manually checked by a human at the end of th
 4. run ai yolov? on images for surface scraping
 5. AIChecker.py to push back to aws bucket
 6. notify via SNS
-7. human manual verification
-8. manual uploading of verified folders to onedrive
+7. SNS link to lambda function deliver message to telegram
+8. human manual verification
+9. manual uploading of verified folders to onedrive
 
 Structure of AWS Services
 ![AWS Diagram](image.png)
@@ -40,6 +41,9 @@ PHOTO REQUIREMENTS
 
 TODO
 1. AIChecker.py
+
+ISSUES
+1. AWS Free Tier not enough to run NVIDIA GPUs, unable to implement AI checker in practice
 
 PROBLEMS/BUGS
 1. Yahoo browser downloading duplicate images
