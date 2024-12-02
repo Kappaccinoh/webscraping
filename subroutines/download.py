@@ -4,7 +4,7 @@ import zipfile
 import shutil
 
 # AWS S3 configuration
-BUCKET_NAME = 'REDACTED'  # Replace with your bucket name
+BUCKET_NAME = 'web-scraping-food-ai-bucket'  # Replace with your bucket name
 LOCAL_DOWNLOAD_PATH = 'downloaded zips'  # Local folder to save downloaded files
 SCRAPED_IMAGES_DIR = 'scraped images'  # Directory to extract images into
 

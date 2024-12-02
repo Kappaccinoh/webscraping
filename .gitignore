@@ -23,3 +23,6 @@ scraped_images/
 
 # Ignore the myenv folder
 myenv/
+
+# Downloaded Zips Intermediate
+downloaded_zips/
