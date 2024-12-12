@@ -29,14 +29,22 @@ def download_zip_files_from_s3(bucket_name, local_path):
             # Check if the object is a ZIP file
             if file_key.endswith('.zip'):
                 # Replace underscores with spaces in the file name
-                file_name = os.path.basename(file_key).replace('_', ' ')  # Replacing _ with space
+                file_name = os.path.basename(file_key).replace('_', ' ')
+                zip_dir_name = os.path.splitext(file_name)[0]  # Removing .zip extension
+                extract_dir = os.path.join(SCRAPED_IMAGES_DIR, zip_dir_name)
+
+                # Skip if the directory already exists
+                if os.path.exists(extract_dir):
+                    print(f"Skipping {file_name}, already extracted to {extract_dir}.")
+                    continue
+
                 local_file_path = os.path.join(local_path, file_name)
                 print(f"Downloading {file_key} to {local_file_path}...")
-                
+
                 # Download the file
                 s3_client.download_file(bucket_name, file_key, local_file_path)
                 print(f"Downloaded {file_name} successfully!")
-                
+
                 # Extract the ZIP file to a subdirectory in the scraped images folder
                 extract_zip_file(local_file_path, SCRAPED_IMAGES_DIR, file_name)
             else:
